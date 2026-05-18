@@ -1,0 +1,19 @@
+{
+ "creation": "2024-01-01 00:00:00.000000",
+ "docstatus": 0,
+ "doctype": "Page",
+ "modified": "2024-01-01 00:00:00.000000",
+ "module": "Do Task",
+ "name": "task_dashboard",
+ "page_name": "task_dashboard",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "All"
+  }
+ ],
+ "standard": "Yes",
+ "title": "Task Dashboard"
+}

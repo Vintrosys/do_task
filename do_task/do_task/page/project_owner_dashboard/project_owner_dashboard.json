@@ -1,0 +1,22 @@
+{
+ "creation": "2024-05-08 00:00:00.000000",
+ "docstatus": 0,
+ "doctype": "Page",
+ "modified": "2024-05-08 00:00:00.000000",
+ "module": "Do Task",
+ "name": "project_owner_dashboard",
+ "page_name": "project_owner_dashboard",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Projects User"
+  },
+  {
+   "role": "Projects Manager"
+  }
+ ],
+ "standard": "Yes",
+ "title": "Project Owner Dashboard"
+}
