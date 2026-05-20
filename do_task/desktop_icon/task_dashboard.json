@@ -1,0 +1,28 @@
+{
+ "app": "do_task",
+ "bg_color": "gray",
+ "creation": "2026-05-20 17:20:00",
+ "docstatus": 0,
+ "doctype": "Desktop Icon",
+ "hidden": 0,
+ "icon": "check-square",
+ "icon_type": "Link",
+ "idx": 1,
+ "label": "Task Dashboard",
+ "link": "/app/task_dashboard",
+ "link_to": "Do Task",
+ "link_type": "Workspace Sidebar",
+ "modified": "2026-05-20 18:03:14.671748",
+ "modified_by": "Administrator",
+ "name": "Task Dashboard",
+ "owner": "Administrator",
+ "parent_icon": "ERPNext",
+ "restrict_removal": 0,
+ "roles": [
+  {
+   "role": "All"
+  }
+ ],
+ "sidebar": "Do Task",
+ "standard": 1
+}

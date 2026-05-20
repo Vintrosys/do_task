@@ -25,14 +25,19 @@ class ProjectOwnerDashboard {
 		this.search_query = "";
 		this.current_view = "tasks";
 		this.owned_projects = [];
+		this.debounce_timer = null;
 		
 		frappe.require("/assets/do_task/css/task_dashboard.css");
 		this.init();
 	}
 
 	async init() {
+		this.view_type = localStorage.getItem("po_dashboard_view_type") || "card";
 		this.render_shell();
-		await this.fetch_owned_projects();
+		await Promise.all([
+			this.fetch_owned_projects(),
+			this.fetch_status_options()
+		]);
 		
 		if (this.owned_projects.length === 0) {
 			this.render_no_access();
@@ -44,8 +49,22 @@ class ProjectOwnerDashboard {
 			this.filters.project = this.owned_projects[0].name;
 		}
 
+		this.update_view_active_class();
 		this.bind_events();
 		this.load_content();
+	}
+
+	fetch_status_options() {
+		return new Promise((resolve) => {
+			frappe.model.with_doctype("Task", () => {
+				const meta = frappe.get_meta("Task");
+				const status_field = meta && meta.fields.find(f => f.fieldname === "status");
+				this.status_options = status_field && status_field.options 
+					? status_field.options.split("\n").map(o => o.trim()).filter(Boolean) 
+					: ["Open", "Working", "Completed", "Cancelled"];
+				resolve();
+			});
+		});
 	}
 
 	async fetch_owned_projects() {
@@ -57,6 +76,16 @@ class ProjectOwnerDashboard {
 		} catch (e) {
 			console.error("Error fetching projects", e);
 			this.owned_projects = [];
+		}
+	}
+
+	update_view_active_class() {
+		const menu = this.page.main.find("#td-dropdown-menu-content");
+		menu.find(".td-dropdown-item").removeClass("active");
+		if (this.view_type === "list") {
+			menu.find("#td-btn-list-view").addClass("active");
+		} else {
+			menu.find("#td-btn-card-view").addClass("active");
 		}
 	}
 
@@ -73,10 +102,6 @@ class ProjectOwnerDashboard {
 						<div class="td-nav-item active" data-view="tasks"><i class="fa fa-list"></i> ${__("Project Tasks")}</div>
 						<div class="td-nav-item" data-view="reports"><i class="fa fa-pie-chart"></i> ${__("Analytics")}</div>
 					</div>
-					<div class="td-sidebar-section">
-						<div class="td-sidebar-section-title">${__("Quick Actions")}</div>
-						<div class="td-nav-item" data-action="clear"><i class="fa fa-refresh"></i> ${__("Reload Dashboard")}</div>
-					</div>
 				</aside>
 				<div class="td-sidebar-overlay"></div>
 				<main class="td-main-content">
@@ -90,11 +115,25 @@ class ProjectOwnerDashboard {
 								<i class="fa fa-search"></i>
 								<input type="text" id="td-task-search" placeholder="${__("Search tasks...")}">
 							</div>
+							<div class="td-dropdown">
+								<button class="td-btn-menu" id="td-btn-menu-trigger" title="${__("Options")}">
+									<i class="fa fa-cog"></i>
+								</button>
+								<div class="td-dropdown-menu" id="td-dropdown-menu-content">
+									<button class="td-dropdown-item" id="td-btn-list-view">
+										<i class="fa fa-list"></i> ${__("List View")}
+									</button>
+									<button class="td-dropdown-item" id="td-btn-card-view">
+										<i class="fa fa-th"></i> ${__("Card View")}
+									</button>
+								</div>
+							</div>
 							<button class="td-btn-new" id="td-btn-new-task"><i class="fa fa-plus"></i> ${__("New Task")}</button>
 						</div>
 					</div>
 					<div id="td-view-content"></div>
 				</main>
+				<button class="td-fab" id="td-fab-new-task"><i class="fa fa-plus"></i></button>
 			</div>
 		`);
 	}
@@ -120,15 +159,12 @@ class ProjectOwnerDashboard {
 		main.on("click", ".td-nav-item", (e) => {
 			const $item = $(e.currentTarget);
 			const view = $item.data("view");
-			const action = $item.data("action");
 			if (view) {
 				this.current_view = view;
 				this.page_start = 0; 
 				main.find(".td-nav-item").removeClass("active");
 				$item.addClass("active");
 				this.load_content();
-			} else if (action === "clear") {
-				location.reload();
 			}
 			if ($(window).width() <= 1200) main.find(".td-sidebar").removeClass("active");
 		});
@@ -143,6 +179,34 @@ class ProjectOwnerDashboard {
 			if ($(window).width() <= 1200) main.find(".td-sidebar").removeClass("active");
 		});
 
+		// Menu Dropdown Toggle
+		main.on("click", "#td-btn-menu-trigger", (e) => {
+			e.stopPropagation();
+			main.find("#td-dropdown-menu-content").toggleClass("active");
+		});
+
+		$(document).on("click.td-menu-close", () => {
+			main.find("#td-dropdown-menu-content").removeClass("active");
+		});
+
+		main.on("click", "#td-btn-list-view", () => {
+			this.view_type = "list";
+			localStorage.setItem("po_dashboard_view_type", "list");
+			this.update_view_active_class();
+			if (this.current_view === "tasks") {
+				this.load_tasks(true);
+			}
+		});
+
+		main.on("click", "#td-btn-card-view", () => {
+			this.view_type = "card";
+			localStorage.setItem("po_dashboard_view_type", "card");
+			this.update_view_active_class();
+			if (this.current_view === "tasks") {
+				this.load_tasks(true);
+			}
+		});
+
 		main.on("input", "#td-task-search", (e) => {
 			clearTimeout(this.debounce_timer);
 			this.debounce_timer = setTimeout(() => {
@@ -152,7 +216,7 @@ class ProjectOwnerDashboard {
 			}, 400);
 		});
 
-		main.on("click", "#td-btn-new-task", () => this.open_task_dialog());
+		main.on("click", "#td-btn-new-task, #td-fab-new-task", () => this.open_task_dialog());
 
 		main.on("click", ".td-page-btn", (e) => {
 			const action = $(e.currentTarget).data("action");
@@ -171,12 +235,15 @@ class ProjectOwnerDashboard {
 		this.render_projects_list();
 		
 		const project_name = this.owned_projects.find(p => p.name === this.filters.project)?.project_name || this.filters.project;
-		this.page.main.find("#td-view-title").text(this.current_view === "tasks" ? __("Tasks: {0}", [project_name]) : __("Analytics: {0}", [project_name]));
+		const is_tasks = this.current_view === "tasks";
+		this.page.main.find("#td-view-title").text(is_tasks ? __("Tasks: {0}", [project_name]) : __("Analytics: {0}", [project_name]));
 
-		if (this.current_view === "tasks") {
+		if (is_tasks) {
+			this.page.main.find(".td-search-input-wrap").show();
 			this.render_tasks_frame(container);
 			this.load_tasks(true);
 		} else {
+			this.page.main.find(".td-search-input-wrap").hide();
 			this.render_reports_frame(container);
 			this.render_analytics();
 		}
@@ -193,10 +260,16 @@ class ProjectOwnerDashboard {
 	}
 
 	render_tasks_frame(container) {
+		const status_options_html = (this.status_options || []).map(opt => `<option value="${opt}">${opt}</option>`).join("");
 		container.html(`
-			<div id="td-summary-container" class="td-summary-row"></div>
 			<div class="td-filters">
-				<div class="td-filter-item"><label>Status</label><select data-filter="status" class="td-f-sel"><option value="">All Status</option><option value="Open">Open</option><option value="Working">Working</option><option value="Completed">Completed</option></select></div>
+				<div class="td-filter-item">
+					<label>Status</label>
+					<select data-filter="status" class="td-f-sel">
+						<option value="">All Status</option>
+						${status_options_html}
+					</select>
+				</div>
 				<div class="td-filter-item"><label>Priority</label><select data-filter="priority" class="td-f-sel"><option value="">All Priority</option><option value="Low">Low</option><option value="Medium">Medium</option><option value="High">High</option><option value="Urgent">Urgent</option></select></div>
 				<div class="td-filter-item"><label>Assignee</label><div id="f-user"></div></div>
 			</div>
@@ -222,6 +295,14 @@ class ProjectOwnerDashboard {
 		container.on("click", ".td-task-card", (e) => {
 			const id = $(e.currentTarget).data("id");
 			if (id) frappe.set_route("Form", "Task", id);
+		});
+
+		container.on("click", ".td-btn-timesheet", (e) => {
+			e.stopPropagation();
+			const id = $(e.currentTarget).data("id");
+			if (id) {
+				frappe.set_route("List", "Timesheet", {"task": id});
+			}
 		});
 	}
 
@@ -253,7 +334,6 @@ class ProjectOwnerDashboard {
 			this.total_tasks = total;
 			this.render_task_cards(container, tasks);
 			this.render_pagination();
-			this.update_summary();
 			container.css("opacity", "1");
 		} catch (e) {
 			container.html('<div class="td-error">Failed to load tasks.</div>');
@@ -294,18 +374,67 @@ class ProjectOwnerDashboard {
 	}
 
 	render_task_cards(container, tasks) {
+		if (this.view_type === "list") {
+			container.removeClass("td-task-grid").addClass("td-task-list");
+		} else {
+			container.removeClass("td-task-list").addClass("td-task-grid");
+		}
+
 		if (!tasks.length) { 
-			container.html(`<div class="td-empty-state"><i class="fa fa-tasks"></i><h3>No Tasks Found</h3></div>`); 
+			container.html(`
+				<div class="td-empty-state">
+					<i class="fa fa-tasks"></i>
+					<h3>No Tasks Found</h3>
+					<p>Try adjusting your filters or create a new task to get started.</p>
+				</div>
+			`); 
 			return; 
 		}
 		const html = tasks.map(t => {
 			let assignees = [];
-			try { assignees = JSON.parse(t._assign || "[]"); } catch(e) {}
-			const avatars = assignees.slice(0, 3).map(u => `<div class="td-assignee-avatar" title="${u}">${u.charAt(0).toUpperCase()}</div>`).join("");
+			try { assignees = JSON.parse(t._assign || "[]"); } catch(e) { assignees = []; }
+			
+			const avatars = assignees.slice(0, 3).map(u => {
+				const color = this.get_avatar_color(u);
+				return `<div class="td-assignee-avatar" style="background: ${color}" title="${u}">${u.charAt(0).toUpperCase()}</div>`;
+			}).join("");
+
+			if (this.view_type === "list") {
+				return `
+					<div class="td-task-list-row" data-id="${t.name}">
+						<div class="td-list-col td-list-project-subject">
+							<span class="td-task-project">${t.project || "General"}</span>
+							<h3 class="td-task-subject">${t.subject}</h3>
+						</div>
+						<div class="td-list-col td-list-badges">
+							<span class="td-badge td-badge-status-${(t.status||"Open").replace(/\s+/g,'')}">${t.status||"Open"}</span>
+							<span class="td-badge td-badge-priority-${t.priority||"Medium"}">${t.priority||"Medium"}</span>
+						</div>
+						<div class="td-list-col td-list-progress">
+							<div class="td-progress-bar">
+								<div class="td-progress-fill" style="width:${t.progress||0}%"></div>
+							</div>
+							<span class="td-progress-percent">${parseInt(t.progress||0)}%</span>
+						</div>
+						<div class="td-list-col td-list-assignees">
+							<div class="td-assignees">${avatars} ${assignees.length > 3 ? `<span class="td-more-assignees">+${assignees.length - 3}</span>` : ""}</div>
+						</div>
+						<div class="td-list-col td-list-due">
+							<div class="td-due-date"><i class="fa fa-calendar-o"></i> ${t.exp_end_date ? frappe.datetime.str_to_user(t.exp_end_date) : "No Due Date"}</div>
+						</div>
+						<div class="td-list-col td-list-timesheet" style="flex: 1.2; justify-content: center;">
+							<button class="td-btn-timesheet" data-id="${t.name}">
+								<i class="fa fa-clock-o"></i> View Timesheet
+							</button>
+						</div>
+					</div>
+				`;
+			}
 
 			return `
 				<div class="td-task-card" data-id="${t.name}">
 					<div class="td-card-header">
+						<div class="td-task-project">${t.project || "General"}</div>
 						<h3 class="td-task-subject">${t.subject}</h3>
 					</div>
 					<div class="td-card-badges">
@@ -313,16 +442,36 @@ class ProjectOwnerDashboard {
 						<span class="td-badge td-badge-priority-${t.priority||"Medium"}">${t.priority||"Medium"}</span>
 					</div>
 					<div class="td-card-progress">
-						<div class="td-progress-bar"><div class="td-progress-fill" style="width:${t.progress||0}%"></div></div>
+						<div class="td-progress-label">
+							<span>Progress</span>
+							<span>${parseInt(t.progress||0)}%</span>
+						</div>
+						<div class="td-progress-bar">
+							<div class="td-progress-fill" style="width:${t.progress||0}%"></div>
+						</div>
+					</div>
+					<div style="margin-top: 8px;">
+						<button class="td-btn-timesheet" style="width: 100%;" data-id="${t.name}">
+							<i class="fa fa-clock-o"></i> View Timesheet
+						</button>
 					</div>
 					<div class="td-card-footer">
-						<div class="td-assignees">${avatars}</div>
-						<div class="td-due-date">${t.exp_end_date ? frappe.datetime.str_to_user(t.exp_end_date) : ""}</div>
+						<div class="td-assignees">${avatars} ${assignees.length > 3 ? `<span class="td-more-assignees">+${assignees.length - 3}</span>` : ""}</div>
+						<div class="td-due-date"><i class="fa fa-calendar-o"></i> ${t.exp_end_date ? frappe.datetime.str_to_user(t.exp_end_date) : "No Due Date"}</div>
 					</div>
 				</div>
 			`;
 		}).join("");
 		container.html(html);
+	}
+
+	get_avatar_color(user) {
+		const colors = ["#6366f1", "#ec4899", "#8b5cf6", "#10b981", "#f59e0b", "#3b82f6"];
+		let hash = 0;
+		for (let i = 0; i < user.length; i++) {
+			hash = user.charCodeAt(i) + ((hash << 5) - hash);
+		}
+		return colors[Math.abs(hash) % colors.length];
 	}
 
 	render_pagination() {
@@ -367,6 +516,7 @@ class ProjectOwnerDashboard {
 				{ label: "Subject", fieldname: "subject", fieldtype: "Data", reqd: 1 },
 				{ label: "Project", fieldname: "project", fieldtype: "Link", options: "Project", default: this.filters.project, read_only: 1 },
 				{ label: "Assign To", fieldname: "assign_to", fieldtype: "Link", options: "User" },
+				{ label: "Task Group", fieldname: "task_group", fieldtype: "Link", options: "Task Group" },
 				{ label: "Priority", fieldname: "priority", fieldtype: "Select", options: ["Low", "Medium", "High", "Urgent"], default: "Medium" },
 				{ label: "End Date", fieldname: "exp_end_date", fieldtype: "Date" }
 			],

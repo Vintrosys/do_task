@@ -1,0 +1,21 @@
+{
+ "app": "do_task",
+ "bg_color": "#10b981",
+ "creation": "2026-05-20 17:20:00.000000",
+ "docstatus": 0,
+ "doctype": "Desktop Icon",
+ "hidden": 0,
+ "icon_type": "Link",
+ "idx": 2,
+ "label": "Project Owner Dashboard",
+ "link": "/app/project_owner_dashboard",
+ "link_type": "External",
+ "modified": "2026-05-20 17:20:00.000000",
+ "modified_by": "Administrator",
+ "name": "Project Owner Dashboard",
+ "owner": "Administrator",
+ "restrict_removal": 0,
+ "roles": [],
+ "standard": 1,
+ "icon": "briefcase"
+}
