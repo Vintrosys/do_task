@@ -56,8 +56,8 @@ class TaskDashboard {
 			frappe.model.with_doctype("Task", () => {
 				const meta = frappe.get_meta("Task");
 				const status_field = meta && meta.fields.find(f => f.fieldname === "status");
-				this.status_options = status_field && status_field.options 
-					? status_field.options.split("\n").map(o => o.trim()).filter(Boolean) 
+				this.status_options = status_field && status_field.options
+					? status_field.options.split("\n").map(o => o.trim()).filter(Boolean)
 					: ["Open", "Working", "Completed", "Cancelled"];
 				resolve();
 			});
@@ -69,8 +69,8 @@ class TaskDashboard {
 			frappe.model.with_doctype("Open Source Contribution", () => {
 				const meta = frappe.get_meta("Open Source Contribution");
 				const status_field = meta && meta.fields.find(f => f.fieldname === "status");
-				this.pr_status_options = status_field && status_field.options 
-					? status_field.options.split("\n").map(o => o.trim()).filter(Boolean) 
+				this.pr_status_options = status_field && status_field.options
+					? status_field.options.split("\n").map(o => o.trim()).filter(Boolean)
 					: ["Open", "Merged", "Closed", "Pending Review"];
 				resolve();
 			});
@@ -156,11 +156,11 @@ class TaskDashboard {
 
 			if (view) {
 				this.current_view = view;
-				this.page_start = 0; 
+				this.page_start = 0;
 				this.pr_page_start = 0;
 				main.find(".td-nav-item").removeClass("active");
 				$item.addClass("active");
-				
+
 				// Reset filters where necessary
 				if (view !== "tasks" && this.filters.assigned_to) {
 					this.filters.assigned_to = "";
@@ -168,7 +168,7 @@ class TaskDashboard {
 				if (view !== "contributions" && this.pr_filters.contributer) {
 					this.pr_filters.contributer = "";
 				}
-				
+
 				this.load_content();
 			} else if (action === "my-tasks") {
 				this.current_view = "tasks";
@@ -185,7 +185,7 @@ class TaskDashboard {
 				this.pr_filters.contributer = frappe.session.user;
 				this.load_content();
 			}
-			
+
 			if ($(window).width() <= 1200) main.find(".td-sidebar").removeClass("active");
 		});
 
@@ -281,7 +281,7 @@ class TaskDashboard {
 	load_content() {
 		const container = this.page.main.find("#td-view-content");
 		const main = this.page.main;
-		
+
 		if (this.current_view === "tasks") {
 			main.find("#td-view-title").text(__("Task Board"));
 			main.find(".td-search-input-wrap").show().find("input").val(this.search_query).attr("placeholder", __("Search tasks..."));
@@ -341,13 +341,13 @@ class TaskDashboard {
 		container.find('[data-filter="priority"]').val(this.filters.priority);
 
 		this.project_filter = frappe.ui.form.make_control({
-			df: { fieldtype: "Link", options: "Project", placeholder: "Project", onchange: () => { this.filters.project = this.project_filter.get_value(); this.page_start = 0; this.load_tasks(true); }},
+			df: { fieldtype: "Link", options: "Project", placeholder: "Project", onchange: () => { this.filters.project = this.project_filter.get_value(); this.page_start = 0; this.load_tasks(true); } },
 			parent: container.find("#f-proj"), render_input: true
 		});
 		if (this.filters.project) this.project_filter.set_value(this.filters.project);
 
 		this.user_filter = frappe.ui.form.make_control({
-			df: { fieldtype: "Link", options: "User", placeholder: "Assignee", onchange: () => { this.filters.assigned_to = this.user_filter.get_value(); this.page_start = 0; this.load_tasks(true); }},
+			df: { fieldtype: "Link", options: "User", placeholder: "Assignee", onchange: () => { this.filters.assigned_to = this.user_filter.get_value(); this.page_start = 0; this.load_tasks(true); } },
 			parent: container.find("#f-user"), render_input: true
 		});
 		if (this.filters.assigned_to) this.user_filter.set_value(this.filters.assigned_to);
@@ -357,7 +357,7 @@ class TaskDashboard {
 			this.page_start = 0;
 			this.load_tasks(true);
 		});
-		
+
 		container.on("click", ".td-task-card, .td-task-list-row", (e) => {
 			const id = $(e.currentTarget).data("id");
 			if (id) frappe.set_route("Form", "Task", id);
@@ -367,7 +367,7 @@ class TaskDashboard {
 			e.stopPropagation();
 			const id = $(e.currentTarget).data("id");
 			if (id) {
-				frappe.set_route("List", "Timesheet", {"task": id});
+				frappe.set_route("List", "Timesheet", { "task": id });
 			}
 		});
 	}
@@ -375,7 +375,7 @@ class TaskDashboard {
 	async load_tasks(force = false) {
 		const container = this.page.main.find("#td-task-container");
 		const summary_container = this.page.main.find("#td-summary-container");
-		
+
 		if (force) {
 			container.css("opacity", "0.5");
 			if (!container.find(".td-loader").length) {
@@ -394,7 +394,7 @@ class TaskDashboard {
 			// Fetch tasks and total count in parallel
 			const [tasks, total] = await Promise.all([
 				frappe.db.get_list("Task", {
-					fields: ["name", "subject", "project", "status", "priority", "progress", "exp_end_date", "_assign"],
+					fields: ["name", "subject", "project", "status", "priority", "exp_end_date", "_assign"],
 					filters: filters,
 					limit_start: this.page_start,
 					limit_page_length: this.page_length,
@@ -404,7 +404,7 @@ class TaskDashboard {
 			]);
 
 			this.total_tasks = total;
-			
+
 			this.render_task_cards(container, tasks);
 			this.render_pagination();
 			container.css("opacity", "1");
@@ -456,20 +456,20 @@ class TaskDashboard {
 			container.removeClass("td-task-list").addClass("td-task-grid");
 		}
 
-		if (!tasks.length) { 
+		if (!tasks.length) {
 			container.html(`
 				<div class="td-empty-state">
 					<i class="fa fa-tasks"></i>
 					<h3>No Tasks Found</h3>
 					<p>Try adjusting your filters or create a new task to get started.</p>
 				</div>
-			`); 
-			return; 
+			`);
+			return;
 		}
 		const html = tasks.map(t => {
 			let assignees = [];
-			try { assignees = JSON.parse(t._assign || "[]"); } catch(e) { assignees = []; }
-			
+			try { assignees = JSON.parse(t._assign || "[]"); } catch (e) { assignees = []; }
+
 			const avatars = assignees.slice(0, 3).map(u => {
 				const color = this.get_avatar_color(u);
 				return `<div class="td-assignee-avatar" style="background: ${color}" title="${u}">${u.charAt(0).toUpperCase()}</div>`;
@@ -483,14 +483,8 @@ class TaskDashboard {
 							<h3 class="td-task-subject">${t.subject}</h3>
 						</div>
 						<div class="td-list-col td-list-badges">
-							<span class="td-badge td-badge-status-${(t.status||"Open").replace(/\s+/g,'')}">${t.status||"Open"}</span>
-							<span class="td-badge td-badge-priority-${t.priority||"Medium"}">${t.priority||"Medium"}</span>
-						</div>
-						<div class="td-list-col td-list-progress">
-							<div class="td-progress-bar">
-								<div class="td-progress-fill" style="width:${t.progress||0}%"></div>
-							</div>
-							<span class="td-progress-percent">${parseInt(t.progress||0)}%</span>
+							<span class="td-badge td-badge-status-${(t.status || "Open").replace(/\s+/g, '')}">${t.status || "Open"}</span>
+							<span class="td-badge td-badge-priority-${t.priority || "Medium"}">${t.priority || "Medium"}</span>
 						</div>
 						<div class="td-list-col td-list-assignees">
 							<div class="td-assignees">${avatars} ${assignees.length > 3 ? `<span class="td-more-assignees">+${assignees.length - 3}</span>` : ""}</div>
@@ -514,17 +508,8 @@ class TaskDashboard {
 						<h3 class="td-task-subject">${t.subject}</h3>
 					</div>
 					<div class="td-card-badges">
-						<span class="td-badge td-badge-status-${(t.status||"Open").replace(/\s+/g,'')}">${t.status||"Open"}</span>
-						<span class="td-badge td-badge-priority-${t.priority||"Medium"}">${t.priority||"Medium"}</span>
-					</div>
-					<div class="td-card-progress">
-						<div class="td-progress-label">
-							<span>Progress</span>
-							<span>${parseInt(t.progress||0)}%</span>
-						</div>
-						<div class="td-progress-bar">
-							<div class="td-progress-fill" style="width:${t.progress||0}%"></div>
-						</div>
+						<span class="td-badge td-badge-status-${(t.status || "Open").replace(/\s+/g, '')}">${t.status || "Open"}</span>
+						<span class="td-badge td-badge-priority-${t.priority || "Medium"}">${t.priority || "Medium"}</span>
 					</div>
 					<div style="margin-top: 8px;">
 						<button class="td-btn-timesheet" style="width: 100%;" data-id="${t.name}">
@@ -566,7 +551,7 @@ class TaskDashboard {
 					<i class="fa fa-chevron-left"></i> Previous
 				</button>
 				<div class="td-page-info">${__("Page {0} of {1}", [current_page, total_pages])}</div>
-				<button class="td-page-btn" data-action="next" ${ (this.page_start + this.page_length) >= this.total_tasks ? "disabled" : ""}>
+				<button class="td-page-btn" data-action="next" ${(this.page_start + this.page_length) >= this.total_tasks ? "disabled" : ""}>
 					Next <i class="fa fa-chevron-right"></i>
 				</button>
 			`);
@@ -582,7 +567,7 @@ class TaskDashboard {
 					<i class="fa fa-chevron-left"></i> Previous
 				</button>
 				<div class="td-page-info">${__("Page {0} of {1}", [current_page, total_pages])}</div>
-				<button class="td-page-btn" data-action="next" ${ (this.pr_page_start + this.pr_page_length) >= this.total_contributions ? "disabled" : ""}>
+				<button class="td-page-btn" data-action="next" ${(this.pr_page_start + this.pr_page_length) >= this.total_contributions ? "disabled" : ""}>
 					Next <i class="fa fa-chevron-right"></i>
 				</button>
 			`);
@@ -590,7 +575,36 @@ class TaskDashboard {
 	}
 
 	render_reports_frame(container) {
-		container.html('<div class="td-stats-grid"><div class="td-stat-card"><div id="c-status"></div></div><div class="td-stat-card"><div id="c-priority"></div></div></div>');
+		container.html(`
+			<div class="td-chart-controls" style="margin-bottom: 15px; display: flex; gap: 15px;">
+				<div>
+					<label style="font-size: 12px; font-weight: bold;">Status Chart Type:</label>
+					<select id="td-status-chart-type" class="form-control" style="width: 150px; display: inline-block;">
+						<option value="donut">Donut</option>
+						<option value="pie">Pie</option>
+						<option value="bar">Bar</option>
+						<option value="line">Line</option>
+					</select>
+				</div>
+				<div>
+					<label style="font-size: 12px; font-weight: bold;">Priority Chart Type:</label>
+					<select id="td-priority-chart-type" class="form-control" style="width: 150px; display: inline-block;">
+						<option value="bar">Bar</option>
+						<option value="donut">Donut</option>
+						<option value="pie">Pie</option>
+						<option value="line">Line</option>
+					</select>
+				</div>
+			</div>
+			<div class="td-stats-grid">
+				<div class="td-stat-card"><div id="c-status"></div></div>
+				<div class="td-stat-card"><div id="c-priority"></div></div>
+			</div>
+		`);
+
+		container.find("#td-status-chart-type, #td-priority-chart-type").on("change", () => {
+			this.render_analytics();
+		});
 	}
 
 	async render_analytics() {
@@ -598,32 +612,35 @@ class TaskDashboard {
 		container.find(".td-stat-card").append('<div class="td-chart-loader">Loading Chart...</div>');
 
 		try {
-			const tasks = await frappe.db.get_list("Task", { 
-				fields: ["status", "priority"], 
+			const tasks = await frappe.db.get_list("Task", {
+				fields: ["status", "priority"],
 				filters: { docstatus: 0 },
-				limit: 200 
+				limit: 200
 			});
 
 			container.find(".td-chart-loader").remove();
 
 			const s_data = {}; const p_data = {};
-			tasks.forEach(t => { 
-				s_data[t.status] = (s_data[t.status]||0)+1; 
-				p_data[t.priority] = (p_data[t.priority]||0)+1; 
+			tasks.forEach(t => {
+				s_data[t.status] = (s_data[t.status] || 0) + 1;
+				p_data[t.priority] = (p_data[t.priority] || 0) + 1;
 			});
 
-			new frappe.Chart("#c-status", { 
+			const status_chart_type = container.find("#td-status-chart-type").val() || 'donut';
+			const priority_chart_type = container.find("#td-priority-chart-type").val() || 'bar';
+
+			new frappe.Chart("#c-status", {
 				title: "Tasks by Status",
-				data: { labels: Object.keys(s_data), datasets: [{ values: Object.values(s_data) }] }, 
-				type: 'donut', 
+				data: { labels: Object.keys(s_data), datasets: [{ values: Object.values(s_data) }] },
+				type: status_chart_type,
 				height: 250,
 				colors: ['#6366f1', '#10b981', '#f59e0b', '#ef4444']
 			});
 
-			new frappe.Chart("#c-priority", { 
+			new frappe.Chart("#c-priority", {
 				title: "Tasks by Priority",
-				data: { labels: Object.keys(p_data), datasets: [{ values: Object.values(p_data) }] }, 
-				type: 'bar', 
+				data: { labels: Object.keys(p_data), datasets: [{ values: Object.values(p_data) }] },
+				type: priority_chart_type,
 				height: 250,
 				colors: ['#ef4444', '#f59e0b', '#3b82f6', '#10b981']
 			});
@@ -640,7 +657,7 @@ class TaskDashboard {
 				{ label: "Subject", fieldname: "subject", fieldtype: "Data", reqd: 1 },
 				{ label: "Project", fieldname: "project", fieldtype: "Link", options: "Project" },
 				{ label: "Assign To", fieldname: "assign_to", fieldtype: "Link", options: "User" },
-				{ label: "Task Group", fieldname: "task_group", fieldtype: "Link", options: "Task Group" },
+				{ label: "Task Group", fieldname: "custom_task_group", fieldtype: "Link", options: "Task Group" },
 				{ label: "Priority", fieldname: "priority", fieldtype: "Select", options: ["Low", "Medium", "High", "Urgent"], default: "Medium" },
 				{ label: "End Date", fieldname: "exp_end_date", fieldtype: "Date" }
 			],
@@ -850,6 +867,26 @@ class TaskDashboard {
 
 	render_pr_reports_frame(container) {
 		container.html(`
+			<div class="td-chart-controls" style="margin-bottom: 15px; display: flex; gap: 15px;">
+				<div>
+					<label style="font-size: 12px; font-weight: bold;">Status Chart Type:</label>
+					<select id="td-pr-status-chart-type" class="form-control" style="width: 150px; display: inline-block;">
+						<option value="donut">Donut</option>
+						<option value="pie">Pie</option>
+						<option value="bar">Bar</option>
+						<option value="line">Line</option>
+					</select>
+				</div>
+				<div>
+					<label style="font-size: 12px; font-weight: bold;">Module Chart Type:</label>
+					<select id="td-pr-module-chart-type" class="form-control" style="width: 150px; display: inline-block;">
+						<option value="bar">Bar</option>
+						<option value="donut">Donut</option>
+						<option value="pie">Pie</option>
+						<option value="line">Line</option>
+					</select>
+				</div>
+			</div>
 			<div class="td-stats-grid">
 				<div class="td-stat-card"><div id="pr-c-status"></div></div>
 				<div class="td-stat-card"><div id="pr-c-module"></div></div>
@@ -861,6 +898,10 @@ class TaskDashboard {
 				<div id="td-leaderboard-content"></div>
 			</div>
 		`);
+
+		container.find("#td-pr-status-chart-type, #td-pr-module-chart-type").on("change", () => {
+			this.render_pr_analytics();
+		});
 	}
 
 	async render_pr_analytics() {
@@ -884,15 +925,18 @@ class TaskDashboard {
 				s_data[item.status] = (s_data[item.status] || 0) + 1;
 				const module_name = item.module || "Unassigned";
 				m_data[module_name] = (m_data[module_name] || 0) + 1;
-				
+
 				const user = item.contributer || item.owner || "Unknown";
 				leaders[user] = (leaders[user] || 0) + 1;
 			});
 
+			const pr_status_chart_type = container.find("#td-pr-status-chart-type").val() || 'donut';
+			const pr_module_chart_type = container.find("#td-pr-module-chart-type").val() || 'bar';
+
 			new frappe.Chart("#pr-c-status", {
 				title: "Contributions by Status",
 				data: { labels: Object.keys(s_data), datasets: [{ values: Object.values(s_data) }] },
-				type: 'donut',
+				type: pr_status_chart_type,
 				height: 250,
 				colors: ['#10b981', '#6366f1', '#ef4444', '#f59e0b']
 			});
@@ -900,7 +944,7 @@ class TaskDashboard {
 			new frappe.Chart("#pr-c-module", {
 				title: "Contributions by Module",
 				data: { labels: Object.keys(m_data), datasets: [{ values: Object.values(m_data) }] },
-				type: 'bar',
+				type: pr_module_chart_type,
 				height: 250,
 				colors: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899']
 			});

@@ -322,7 +322,7 @@ class ProjectOwnerDashboard {
 		try {
 			const [tasks, total] = await Promise.all([
 				frappe.db.get_list("Task", {
-					fields: ["name", "subject", "project", "status", "priority", "progress", "exp_end_date", "_assign"],
+					fields: ["name", "subject", "project", "status", "priority", "exp_end_date", "_assign"],
 					filters: filters,
 					limit_start: this.page_start,
 					limit_page_length: this.page_length,
@@ -410,12 +410,6 @@ class ProjectOwnerDashboard {
 							<span class="td-badge td-badge-status-${(t.status||"Open").replace(/\s+/g,'')}">${t.status||"Open"}</span>
 							<span class="td-badge td-badge-priority-${t.priority||"Medium"}">${t.priority||"Medium"}</span>
 						</div>
-						<div class="td-list-col td-list-progress">
-							<div class="td-progress-bar">
-								<div class="td-progress-fill" style="width:${t.progress||0}%"></div>
-							</div>
-							<span class="td-progress-percent">${parseInt(t.progress||0)}%</span>
-						</div>
 						<div class="td-list-col td-list-assignees">
 							<div class="td-assignees">${avatars} ${assignees.length > 3 ? `<span class="td-more-assignees">+${assignees.length - 3}</span>` : ""}</div>
 						</div>
@@ -440,15 +434,6 @@ class ProjectOwnerDashboard {
 					<div class="td-card-badges">
 						<span class="td-badge td-badge-status-${(t.status||"Open").replace(/\s+/g,'')}">${t.status||"Open"}</span>
 						<span class="td-badge td-badge-priority-${t.priority||"Medium"}">${t.priority||"Medium"}</span>
-					</div>
-					<div class="td-card-progress">
-						<div class="td-progress-label">
-							<span>Progress</span>
-							<span>${parseInt(t.progress||0)}%</span>
-						</div>
-						<div class="td-progress-bar">
-							<div class="td-progress-fill" style="width:${t.progress||0}%"></div>
-						</div>
 					</div>
 					<div style="margin-top: 8px;">
 						<button class="td-btn-timesheet" style="width: 100%;" data-id="${t.name}">
@@ -488,7 +473,36 @@ class ProjectOwnerDashboard {
 	}
 
 	render_reports_frame(container) {
-		container.html('<div class="td-stats-grid"><div class="td-stat-card"><div id="c-status"></div></div><div class="td-stat-card"><div id="c-priority"></div></div></div>');
+		container.html(`
+			<div class="td-chart-controls" style="margin-bottom: 15px; display: flex; gap: 15px;">
+				<div>
+					<label style="font-size: 12px; font-weight: bold;">Status Chart Type:</label>
+					<select id="td-status-chart-type" class="form-control" style="width: 150px; display: inline-block;">
+						<option value="donut">Donut</option>
+						<option value="pie">Pie</option>
+						<option value="bar">Bar</option>
+						<option value="line">Line</option>
+					</select>
+				</div>
+				<div>
+					<label style="font-size: 12px; font-weight: bold;">Priority Chart Type:</label>
+					<select id="td-priority-chart-type" class="form-control" style="width: 150px; display: inline-block;">
+						<option value="bar">Bar</option>
+						<option value="donut">Donut</option>
+						<option value="pie">Pie</option>
+						<option value="line">Line</option>
+					</select>
+				</div>
+			</div>
+			<div class="td-stats-grid">
+				<div class="td-stat-card"><div id="c-status"></div></div>
+				<div class="td-stat-card"><div id="c-priority"></div></div>
+			</div>
+		`);
+
+		container.find("#td-status-chart-type, #td-priority-chart-type").on("change", () => {
+			this.render_analytics();
+		});
 	}
 
 	async render_analytics() {
@@ -504,8 +518,12 @@ class ProjectOwnerDashboard {
 				s_data[t.status] = (s_data[t.status]||0)+1; 
 				p_data[t.priority] = (p_data[t.priority]||0)+1; 
 			});
-			new frappe.Chart("#c-status", { title: "By Status", data: { labels: Object.keys(s_data), datasets: [{ values: Object.values(s_data) }] }, type: 'donut', height: 200 });
-			new frappe.Chart("#c-priority", { title: "By Priority", data: { labels: Object.keys(p_data), datasets: [{ values: Object.values(p_data) }] }, type: 'bar', height: 200 });
+
+			const status_chart_type = container.find("#td-status-chart-type").val() || 'donut';
+			const priority_chart_type = container.find("#td-priority-chart-type").val() || 'bar';
+
+			new frappe.Chart("#c-status", { title: "By Status", data: { labels: Object.keys(s_data), datasets: [{ values: Object.values(s_data) }] }, type: status_chart_type, height: 200 });
+			new frappe.Chart("#c-priority", { title: "By Priority", data: { labels: Object.keys(p_data), datasets: [{ values: Object.values(p_data) }] }, type: priority_chart_type, height: 200 });
 		} catch (e) {}
 	}
 
@@ -516,7 +534,7 @@ class ProjectOwnerDashboard {
 				{ label: "Subject", fieldname: "subject", fieldtype: "Data", reqd: 1 },
 				{ label: "Project", fieldname: "project", fieldtype: "Link", options: "Project", default: this.filters.project, read_only: 1 },
 				{ label: "Assign To", fieldname: "assign_to", fieldtype: "Link", options: "User" },
-				{ label: "Task Group", fieldname: "task_group", fieldtype: "Link", options: "Task Group" },
+				{ label: "Task Group", fieldname: "custom_task_group", fieldtype: "Link", options: "Task Group" },
 				{ label: "Priority", fieldname: "priority", fieldtype: "Select", options: ["Low", "Medium", "High", "Urgent"], default: "Medium" },
 				{ label: "End Date", fieldname: "exp_end_date", fieldtype: "Date" }
 			],
