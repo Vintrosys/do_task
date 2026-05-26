@@ -52,15 +52,13 @@ def create_do_task_workspace():
             "label": "Task Dashboard",
             "type": "Link",
             "link_type": "Page",
-            "link_to": "task_dashboard",
-            "icon": "fa fa-list"
+            "link_to": "task_dashboard"
         })
         doc.append("links", {
             "label": "Project Owner Dashboard",
             "type": "Link",
             "link_type": "Page",
-            "link_to": "project_owner_dashboard",
-            "icon": "fa fa-user"
+            "link_to": "project_owner_dashboard"
         })
         doc.insert(ignore_permissions=True)
         frappe.db.commit()
@@ -81,17 +79,16 @@ def create_do_task_workspace():
         existing_links = [l.link_to for l in doc.links]
         updated = False
         
-        for label, page_name, icon in [
-            ("Task Dashboard", "task_dashboard", "fa fa-list"),
-            ("Project Owner Dashboard", "project_owner_dashboard", "fa fa-user")
+        for label, page_name in [
+            ("Task Dashboard", "task_dashboard"),
+            ("Project Owner Dashboard", "project_owner_dashboard")
         ]:
             if page_name not in existing_links:
                 doc.append("links", {
                     "label": label,
                     "type": "Link",
                     "link_type": "Page",
-                    "link_to": page_name,
-                    "icon": icon
+                    "link_to": page_name
                 })
                 updated = True
         if updated:
